@@ -14,6 +14,29 @@ $SCRIPT_DIR=$PWD
 mkdir -p $LOGS_FOLDER
 echo "script started executing at: $(date)" | tee -a $LOG_FILE
 
+
+app_setup() {
+    id roboshop &>>$LOG_FILE
+    if [ $? -ne 0 ]
+    then
+        useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+        VALIDATE $? "Creating Roboshop system user"
+    else
+        echo -e "Roboshop user is already created ... $Y SKIPPING $N"
+    fi
+
+    mkdir -p /app 
+    VALIDATE $? "Creating App Directory"
+
+    curl -o /tmp/$app_name.zip https://roboshop-artifacts.s3.amazonaws.com/$app_name-v3.zip  &>>$LOG_FILE
+    VALIDATE $? "Downloading $app_name"
+
+    rm -rf /app/*
+    cd /app  
+    unzip /tmp/$app_name.zip  &>>$LOG_FILE
+    VALIDATE $? "Unzipping $app_name"
+}
+
 check_root() {
     if [ $USERID -ne 0 ]
     then
@@ -37,40 +60,6 @@ print_time() {
     END_TIME=$(date +%s)
     TOTAL_TIME=$(($END_TIME - $START_TIME))
     echo -e "Script execution completed successfully, $N Time taken: $TOTAL_TIME seconds $N" | tee -a $LOG_FILE
-}
-
-app_setup() {
-    id roboshop
-    if [ $? -ne 0 ]
-    then
-        useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
-        VALIDATE $? "Creating Roboshop system user"
-    else
-        echo -e "Roboshop user is already created ... $Y SKIPPING $N"
-    fi
-
-    mkdir -p /app &>>$LOG_FILE
-    VALIDATE $? "Creating App Directory"
-
-    curl -o /tmp/$app_name.zip https://roboshop-artifacts.s3.amazonaws.com/$app_name-v3.zip  &>>$LOG_FILE
-    VALIDATE $? "Downloading $app_name"
-
-    rm -rf /app/*
-    VALIDATE $? "Removing App content"
-
-    cd /app  
-    unzip /tmp/$app_name.zip  &>>$LOG_FILE
-    VALIDATE $? "Unzipping $app_name"
-}
-
-systemd_setup() {
-    cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service  &>>$LOG_FILE
-    VALIDATE $? "Creating $app_name service"
-
-    systemctl daemon-reload
-    systemctl enable $app_name  &>>$LOG_FILE
-    systemctl start $app_name  &>>$LOG_FILE
-    VALIDATE $? "Starting $app_name service"
 }
 
 nodejs_setup() {
@@ -104,4 +93,14 @@ python_setup() {
 
     pip3 install -r requirements.txt &>>$LOG_FILE
     VALIDATE $? "Installing pip"
+}
+
+systemd_setup() {
+    cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service  &>>$LOG_FILE
+    VALIDATE $? "Creating $app_name service"
+
+    systemctl daemon-reload
+    systemctl enable $app_name  &>>$LOG_FILE
+    systemctl start $app_name  &>>$LOG_FILE
+    VALIDATE $? "Starting $app_name service"
 }
