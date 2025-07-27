@@ -5,6 +5,6 @@ app_name=user
 
 check_root
 app_setup
-python_setup
+nodejs_setup
 systemd_setup
 print_time
