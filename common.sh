@@ -77,13 +77,13 @@ nodejs_setup() {
 }
 
 maven_setup() {
-    dnf install maven -y  &>>LOG_FILE
+    dnf install maven -y  &>>$LOG_FILE
     VALIDATE $? "Installing maven and Java"
 
-    mvn clean package &>>LOG_FILE
+    mvn clean package &>>$LOG_FILE
     VALIDATE $? "Packaging"
 
-    mv target/shipping-1.0.jar shipping.jar  &>>LOG_FILE
+    mv target/shipping-1.0.jar shipping.jar  &>>$LOG_FILE
     VALIDATE $? "Renaming and moving the Jar file"
 }
 
